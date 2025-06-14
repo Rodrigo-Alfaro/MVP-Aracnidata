@@ -12,10 +12,10 @@ app = FastAPI()
 # Load Vectorstore
 vectorstore = FAISS.load_local(
     os.path.join(os.path.dirname(__file__), "ley_vectorstore"),
-    HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"),
+    HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2"),
     allow_dangerous_deserialization=True
 )
-retriever = vectorstore.as_retriever()
+retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
 llm = OllamaLLM(model="mistral")
 
@@ -42,22 +42,27 @@ class ChatInput(BaseModel):
 @app.post("/evaluate")
 async def evaluate(project: Project):
     prompt = f"""
-    Tienes que evaluar el siguiente proyecto:
+    Eres un experto en la ley 21.719 de protección de datos de Chile. Tienes que evaluar el siguiente proyecto:
     {project.description}
 
-    Evalúa cumplimiento con la ley de protección de datos 21.719 de Chile. Genera:
+    Evalúa cumplimiento con la ley de protección de datos 21.719 de Chile. Genera en español:
     1) Una checklist de cumplimiento con base legal
     2) Recomendaciones por categoría (Consentimiento, Seguridad, ARCO) con ejemplos de buenas prácticas
     """
-    answer = qa_chain.run(prompt)
-    print(f"Evaluation response: {answer}")
+    answer = qa_chain.invoke(prompt)
+    print(f"Evaluation response: {answer}\n")
     return {"answer": answer}
 
 
 @app.post("/chat")
 async def chat(input: ChatInput):
-    response = chat_chain.invoke({"question": input.message})
-    print(f"Chat response: {response['answer']}")
+    prompt = f"""
+    Eres un experto en la ley 21.719 de protección de datos de Chile.
+    Responde en español de manera precisa y fundamentada:
+    {input.message}
+    """
+    response = chat_chain.invoke({"question": prompt})
+    print(f"Chat response: {response['answer']}\n")
     return {"answer": response["answer"]}
 
 
