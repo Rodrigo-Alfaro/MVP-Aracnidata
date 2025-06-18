@@ -1,3 +1,6 @@
 ley.txt
 ley_vectorstore
 ley_vectorstore/
+.json
+.faiss
+test.py
