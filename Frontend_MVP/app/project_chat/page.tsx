@@ -45,7 +45,7 @@ export default function ChatPage() {
       id: "1",
       role: "assistant",
       content:
-        "¡Hola! Soy tu consultor especializado en cumplimiento legal para desarrollo de software. Puedo ayudarte con:\n\n• Implementación de medidas de ciberseguridad\n• Ejemplos de código específicos para tu contexto\n• Auditoría de sistemas existentes\n• Guías de cumplimiento legal\n\n¿En qué tipo de proyecto estás trabajando?",
+        "¡Hola! Soy tu consultor especializado en cumplimiento legal para desarrollo de software. Preguntame sobre tu proyecto descrito anteriormente",
       timestamp: new Date(),
     },
   ])
@@ -67,13 +67,13 @@ export default function ChatPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/chat", {
+      const response = await fetch("http://localhost:8000/project_chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_type: "general", 
+          project_id: "project123", // Hardcoded as requested
           message: inputMessage,
         }),
       })
