@@ -103,29 +103,40 @@ class ChatInput(BaseModel):
     project_id: str
     message: str
 
+class ChatMessage(BaseModel):
+    message: str
+    user_type: str  # dev or general
+
 # ─────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────
 @app.post("/chat")
-async def chat(input: Chat):
-    user_message = input.message.strip()
+async def chat(msg: ChatMessage):
+    if msg.user_type == "dev":
+        prompt = f"""
+        Eres un experto en la ley 21.719 de protección de datos de Chile. Responde de manera clara, técnica y detallada para un público con conocimientos 
+        en tecnología, como un desarrollador o un estudiante de informatica.
+        Pregunta del usuario: {msg.message}
+        Responde en español, usando la información de la ley y buenas prácticas.
+        """
+    else:
+        prompt = f"""
+        Eres un experto en la ley 21.719 de protección de datos de Chile. Estas respondiendo a alguien sin conocimientos
+        técnicos, sé lo más simple y completo posible.
+        Pregunta del usuario: {msg.message}
+        Responde en español, usando la información de la ley y buenas prácticas.
+        """
 
-    cached_answer = semantic_cache_lookup(user_message)
+    cached_answer = semantic_cache_lookup(msg.message)
     if cached_answer:
         print("[Cache HIT]")
         return {"answer": cached_answer}
 
     print("[Cache MISS]")
-    full_prompt = f"""
-    Eres un experto en la ley 21.719 de protección de datos de Chile. Estas respondiendo a alguien sin conocimientos
-    técnicos, sé lo más simple y completo posible.
-    Pregunta del usuario: {user_message}
-    Responde en español, usando la información de la ley y buenas prácticas.
-    """
-    response = qa_chain.invoke({"query": full_prompt})
+    response = qa_chain.invoke({"query": prompt})
     answer = response.get("answer") or response.get("result")
 
-    semantic_cache_store(user_message, answer)
+    semantic_cache_store(msg.message, answer)
     print(f"Chat response: {answer}\n")
     return {"answer": answer}
 
