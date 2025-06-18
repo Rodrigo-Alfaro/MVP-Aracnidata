@@ -48,10 +48,35 @@ export default function QuizPage() {
     }
   }
 
-  const handleSubmit = () => {
-    // Aquí procesarías las respuestas y calcularías el puntaje
-    // Por ahora redirigimos a los resultados
-    router.push("/quiz-results")
+  const handleSubmit = async () => {
+    const selectedLabels = questions.map((q) => {
+      const selectedValue = answers[q.field]
+      const selectedOption = q.options.find((opt) => opt.value === selectedValue)
+      return selectedOption?.label || ""
+    })
+
+    const summary = selectedLabels.join("; ")
+
+    try {
+      const response = await fetch("/api/quiz-submit", { // url del endpoint
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "project123", 
+          description: summary,
+        }),
+      })
+
+      if (response.ok) {
+        router.push("/quiz-results")
+      } else {
+        console.error("Error al enviar las respuestas del quiz")
+      }
+    } catch (error) {
+      console.error("Error de red:", error)
+    }
   }
 
   const isStepComplete = (step: number) => {
