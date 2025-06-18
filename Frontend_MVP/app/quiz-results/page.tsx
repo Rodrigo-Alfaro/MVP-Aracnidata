@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Shield, CheckCircle, AlertTriangle, XCircle, ArrowLeft, Download, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useState } from "react"
 
 export default function QuizResultsPage() {
   // Simulación de resultados (en producción vendrían de la evaluación real)
@@ -51,6 +52,35 @@ export default function QuizResultsPage() {
       icon: CheckCircle,
     },
   ]
+
+  const [projectDescription, setProjectDescription] = useState("")
+  const [evaluationResult, setEvaluationResult] = useState<string | null>(null)
+  const [isEvaluating, setIsEvaluating] = useState(false)
+
+  const handleEvaluate = async () => {
+    if (!projectDescription.trim()) return
+    setIsEvaluating(true)
+    setEvaluationResult(null)
+    try {
+      const response = await fetch("http://localhost:8000/evaluate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "project123", 
+          description: projectDescription,
+        }),
+      })
+      if (!response.ok) throw new Error("Error en la respuesta del servidor")
+      const data = await response.json()
+      setEvaluationResult(data.answer)
+    } catch (error) {
+      setEvaluationResult("Ocurrió un error al evaluar el proyecto.")
+    } finally {
+      setIsEvaluating(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -152,6 +182,103 @@ export default function QuizResultsPage() {
           </CardContent>
         </Card>
 
+        {/* Project Evaluation Section */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #f8fafc 60%, #e0e7ef 100%)",
+            borderRadius: 16,
+            boxShadow: "0 4px 24px rgba(60, 60, 130, 0.08)",
+            padding: 32,
+            margin: "32px auto",
+            maxWidth: 540,
+            border: "1px solid #e5e7eb",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              marginBottom: 12,
+              color: "#2d3748",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            Evaluación de Proyecto con IA
+          </h2>
+          <label
+            htmlFor="project-description"
+            style={{
+              fontWeight: 500,
+              color: "#475569",
+              marginBottom: 6,
+              fontSize: 15,
+            }}
+          >
+            Descripción del proyecto
+          </label>
+          <textarea
+            id="project-description"
+            rows={4}
+            style={{
+              width: "100%",
+              marginBottom: 16,
+              borderRadius: 8,
+              padding: "12px 14px",
+              border: "1.5px solid #cbd5e1",
+              fontSize: 15,
+              fontFamily: "inherit",
+              resize: "vertical",
+              background: "#fff",
+              boxSizing: "border-box",
+              outline: "none",
+              transition: "border 0.2s",
+            }}
+            placeholder="Describe tu proyecto aquí de la forma mas completamente posible..."
+            value={projectDescription}
+            onChange={e => setProjectDescription(e.target.value)}
+          />
+          <button
+            onClick={handleEvaluate}
+            disabled={isEvaluating || !projectDescription.trim()}
+            style={{
+              background: "linear-gradient(90deg, #6366f1 60%, #60a5fa 100%)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 0",
+              fontWeight: 600,
+              fontSize: 16,
+              cursor: isEvaluating || !projectDescription.trim() ? "not-allowed" : "pointer",
+              marginBottom: 8,
+              boxShadow: "0 2px 8px rgba(60, 60, 130, 0.07)",
+              transition: "background 0.2s",
+            }}
+          >
+            {isEvaluating ? "Evaluando..." : "Evaluar proyecto"}
+          </button>
+          {evaluationResult && (
+            <div
+              style={{
+                marginTop: 20,
+                background: "#f1f5f9",
+                borderRadius: 8,
+                padding: 18,
+                border: "1px solid #cbd5e1",
+                color: "#334155",
+                fontSize: 15.5,
+                lineHeight: 1.6,
+                boxShadow: "0 1px 4px rgba(60, 60, 130, 0.04)",
+              }}
+            >
+              <strong style={{ color: "#6366f1" }}>Resultado:</strong>
+              <div style={{ marginTop: 8, whiteSpace: "pre-line" }}>{evaluationResult}</div>
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="grid md:grid-cols-2 gap-4 mb-8">
           <Card className="border-blue-100">
@@ -161,7 +288,7 @@ export default function QuizResultsPage() {
               <p className="text-sm text-gray-600 mb-4">
                 Habla con nuestro consultor IA para obtener ayuda específica con tus recomendaciones
               </p>
-              <Link href="/chat">
+              <Link href="/project_chat">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">Iniciar Consulta</Button>
               </Link>
             </CardContent>

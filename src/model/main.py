@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain.chains import RetrievalQA
 from langchain_ollama import OllamaLLM
@@ -15,6 +16,14 @@ from sentence_transformers import SentenceTransformer
 # API Setup and Redis cache
 # ─────────────────────────────────────────
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+)
 
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
 embedding_model = SentenceTransformer("all-mpnet-base-v2")
