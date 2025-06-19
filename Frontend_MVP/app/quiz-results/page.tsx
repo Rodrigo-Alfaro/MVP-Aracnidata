@@ -7,10 +7,28 @@ import { Progress } from "@/components/ui/progress"
 import { Shield, CheckCircle, AlertTriangle, XCircle, ArrowLeft, Download, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
+interface QuizAnswers {
+  dataType: string
+  encryption: string
+  policies: string
+  twoFA: string
+  audits: string
+  incidentPlan: string
+}
 
 export default function QuizResultsPage() {
-  // Simulación de resultados (en producción vendrían de la evaluación real)
+  const [answers, setAnswers] = useState<QuizAnswers | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("quizAnswers");
+      if (stored) {
+        setAnswers(JSON.parse(stored));
+      }
+    }
+  }, []);
   const complianceScore = 65
   const riskLevel = complianceScore >= 80 ? "Bajo" : complianceScore >= 60 ? "Medio" : "Alto"
   const riskColor =
