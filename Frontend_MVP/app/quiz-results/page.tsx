@@ -7,11 +7,210 @@ import { Progress } from "@/components/ui/progress"
 import { Shield, CheckCircle, AlertTriangle, XCircle, ArrowLeft, Download, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
+interface QuizAnswers {
+  dataType: string
+  encryption: string
+  policies: string
+  twoFA: string
+  audits: string
+  incidentPlan: string
+}
 
 export default function QuizResultsPage() {
-  // Simulación de resultados (en producción vendrían de la evaluación real)
-  const complianceScore = 65
+  const [answers, setAnswers] = useState<QuizAnswers | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("quizAnswers")
+      if (stored) {
+        setAnswers(JSON.parse(stored))
+      }
+    }
+  }, [])
+
+  const calculateComplianceScore = (answers: QuizAnswers): number => {
+    const scoring = {
+      dataType: { basic: 3, sensitive: 2, biometric: 1, none: 0 },
+      encryption: { advanced: 3, basic: 2, none: 0 },
+      policies: { updated: 3, outdated: 1, none: 0 },
+      twoFA: { mandatory: 3, optional: 2, none: 0 },
+      audits: { regular: 3, annual: 2, none: 0 },
+      incidentPlan: { comprehensive: 3, basic: 1, none: 0 },
+    }
+
+    let totalScore = 0
+    let maxScore = 0
+
+    Object.entries(answers).forEach(([key, value]) => {
+      const keyTyped = key as keyof QuizAnswers
+      if (scoring[keyTyped] && scoring[keyTyped][value as keyof (typeof scoring)[typeof keyTyped]]) {
+        totalScore += scoring[keyTyped][value as keyof (typeof scoring)[typeof keyTyped]]
+      }
+      maxScore += 3 // Maximum points per question
+    })
+
+    return Math.round((totalScore / maxScore) * 100)
+  }
+
+  const generateRecommendations = (answers: QuizAnswers) => {
+    const recs = []
+
+    if (answers.encryption === "none" || answers.encryption === "basic") {
+      recs.push({
+        priority: "Alta",
+        title: "Implementar Encriptación Avanzada",
+        description:
+          answers.encryption === "none"
+            ? "Tu sistema necesita encriptación AES-256 para cumplir con los estándares de la Ley 21.719"
+            : "Actualiza tu encriptación a AES-256 para mayor seguridad",
+        status: "pending",
+        icon: Shield,
+      })
+    }
+
+    if (answers.policies === "none" || answers.policies === "outdated") {
+      recs.push({
+        priority: "Alta",
+        title: "Actualizar Políticas de Privacidad",
+        description:
+          answers.policies === "none"
+            ? "Debes crear políticas de privacidad que cumplan con la Ley 21.719"
+            : "Las políticas deben incluir las nuevas disposiciones de la ley de ciberseguridad",
+        status: "pending",
+        icon: AlertTriangle,
+      })
+    }
+
+    if (answers.twoFA === "none" || answers.twoFA === "optional") {
+      recs.push({
+        priority: answers.dataType === "biometric" || answers.dataType === "sensitive" ? "Alta" : "Media",
+        title: "Implementar Autenticación 2FA",
+        description:
+          answers.twoFA === "none"
+            ? "Añadir autenticación de dos factores para mejorar la seguridad de acceso"
+            : "Considera hacer obligatorio el 2FA para datos sensibles",
+        status: "pending",
+        icon: Shield,
+      })
+    }
+
+    if (answers.audits === "none") {
+      recs.push({
+        priority: "Media",
+        title: "Implementar Auditorías de Seguridad",
+        description: "Establece un programa de auditorías periódicas para mantener la seguridad",
+        status: "pending",
+        icon: AlertTriangle,
+      })
+    }
+
+    if (answers.incidentPlan === "none" || answers.incidentPlan === "basic") {
+      recs.push({
+        priority: answers.incidentPlan === "none" ? "Alta" : "Baja",
+        title: "Plan de Respuesta a Incidentes",
+        description:
+          answers.incidentPlan === "none"
+            ? "Desarrollar un protocolo completo para manejo de incidentes de seguridad"
+            : "Mejorar y probar regularmente tu plan de respuesta a incidentes",
+        status: "pending",
+        icon: AlertTriangle,
+      })
+    }
+
+    // Add completed items
+    if (answers.encryption === "advanced") {
+      recs.push({
+        priority: "Completado",
+        title: "Encriptación Avanzada",
+        description: "Tienes implementada encriptación de nivel avanzado",
+        status: "completed",
+        icon: CheckCircle,
+      })
+    }
+
+    if (answers.policies === "updated") {
+      recs.push({
+        priority: "Completado",
+        title: "Políticas Actualizadas",
+        description: "Tus políticas están actualizadas según la nueva ley",
+        status: "completed",
+        icon: CheckCircle,
+      })
+    }
+
+    return recs
+  }
+
+  const getComplianceStats = (answers: QuizAnswers) => {
+    const completed = Object.values(answers).filter(
+      (answer) =>
+        answer === "advanced" ||
+        answer === "updated" ||
+        answer === "mandatory" ||
+        answer === "regular" ||
+        answer === "comprehensive",
+    ).length
+
+    const needsImprovement = Object.values(answers).filter(
+      (answer) => answer === "basic" || answer === "outdated" || answer === "optional" || answer === "annual",
+    ).length
+
+    const critical = Object.values(answers).filter((answer) => answer === "none").length
+
+    return { completed, needsImprovement, critical }
+  }
+
+  const formatQuizAnswersForChat = (answers: QuizAnswers): string => {
+    const answerLabels = {
+      dataType: {
+        basic: "Datos básicos (nombre, email, teléfono)",
+        sensitive: "Datos sensibles (financieros, médicos)",
+        biometric: "Datos biométricos (huellas, reconocimiento facial)",
+        none: "No manejo datos personales",
+      },
+      encryption: {
+        advanced: "Encriptación avanzada (AES-256 o superior)",
+        basic: "Encriptación básica",
+        none: "Sin encriptación implementada",
+      },
+      policies: {
+        updated: "Políticas actualizadas según la nueva ley",
+        outdated: "Políticas que necesitan actualización",
+        none: "Sin políticas implementadas",
+      },
+      twoFA: {
+        mandatory: "2FA obligatorio para todos los usuarios",
+        optional: "2FA opcional para los usuarios",
+        none: "Sin 2FA implementado",
+      },
+      audits: {
+        regular: "Auditorías cada 3-6 meses",
+        annual: "Auditorías anuales",
+        none: "Sin auditorías",
+      },
+      incidentPlan: {
+        comprehensive: "Plan completo y probado",
+        basic: "Plan básico",
+        none: "Sin plan de respuesta",
+      },
+    }
+
+    return `Mi proyecto tiene las siguientes características según la evaluación realizada:
+
+• Tipo de datos: ${answerLabels.dataType[answers.dataType as keyof typeof answerLabels.dataType]}
+• Encriptación: ${answerLabels.encryption[answers.encryption as keyof typeof answerLabels.encryption]}
+• Políticas de privacidad: ${answerLabels.policies[answers.policies as keyof typeof answerLabels.policies]}
+• Autenticación 2FA: ${answerLabels.twoFA[answers.twoFA as keyof typeof answerLabels.twoFA]}
+• Auditorías de seguridad: ${answerLabels.audits[answers.audits as keyof typeof answerLabels.audits]}
+• Plan de incidentes: ${answerLabels.incidentPlan[answers.incidentPlan as keyof typeof answerLabels.incidentPlan]}
+
+Basándome en esta evaluación, ¿podrías darme recomendaciones específicas para mejorar el cumplimiento de la Ley 21.719?`
+  }
+
+  // Replace the hardcoded values with dynamic calculations
+  const complianceScore = answers ? calculateComplianceScore(answers) : 0
   const riskLevel = complianceScore >= 80 ? "Bajo" : complianceScore >= 60 ? "Medio" : "Alto"
   const riskColor =
     complianceScore >= 80 ? "text-green-600" : complianceScore >= 60 ? "text-yellow-600" : "text-red-600"
@@ -22,40 +221,19 @@ export default function QuizResultsPage() {
         ? "bg-yellow-100 text-yellow-800"
         : "bg-red-100 text-red-800"
 
-  const recommendations = [
-    {
-      priority: "Alta",
-      title: "Implementar Encriptación Avanzada",
-      description: "Tu sistema necesita encriptación AES-256 para cumplir con los estándares de la Ley 21.719",
-      status: "pending",
-      icon: Shield,
-    },
-    {
-      priority: "Alta",
-      title: "Actualizar Políticas de Privacidad",
-      description: "Las políticas deben incluir las nuevas disposiciones de la ley de ciberseguridad",
-      status: "pending",
-      icon: AlertTriangle,
-    },
-    {
-      priority: "Media",
-      title: "Implementar Autenticación 2FA",
-      description: "Añadir autenticación de dos factores para mejorar la seguridad de acceso",
-      status: "pending",
-      icon: Shield,
-    },
-    {
-      priority: "Baja",
-      title: "Plan de Respuesta a Incidentes",
-      description: "Desarrollar un protocolo completo para manejo de incidentes de seguridad",
-      status: "completed",
-      icon: CheckCircle,
-    },
-  ]
+  const recommendations = answers ? generateRecommendations(answers) : []
+  const stats = answers ? getComplianceStats(answers) : { completed: 0, needsImprovement: 0, critical: 0 }
 
   const [projectDescription, setProjectDescription] = useState("")
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null)
   const [isEvaluating, setIsEvaluating] = useState(false)
+
+  // Set the initial project description when answers are loaded
+  useEffect(() => {
+    if (answers && projectDescription === "") {
+      setProjectDescription(formatQuizAnswersForChat(answers))
+    }
+  }, [answers, projectDescription])
 
   const handleEvaluate = async () => {
     if (!projectDescription.trim()) return
@@ -68,7 +246,7 @@ export default function QuizResultsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: "project123", 
+          id: "project123",
           description: projectDescription,
         }),
       })
@@ -80,6 +258,17 @@ export default function QuizResultsPage() {
     } finally {
       setIsEvaluating(false)
     }
+  }
+
+  if (!answers) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando resultados...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -126,17 +315,17 @@ export default function QuizResultsPage() {
             <div className="grid md:grid-cols-3 gap-4 text-center">
               <div className="p-4 bg-green-50 rounded-lg">
                 <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-green-600">3</div>
+                <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
                 <div className="text-sm text-gray-600">Requisitos Cumplidos</div>
               </div>
               <div className="p-4 bg-yellow-50 rounded-lg">
                 <AlertTriangle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-600">2</div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.needsImprovement}</div>
                 <div className="text-sm text-gray-600">Mejoras Necesarias</div>
               </div>
               <div className="p-4 bg-red-50 rounded-lg">
                 <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-red-600">1</div>
+                <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
                 <div className="text-sm text-gray-600">Riesgos Críticos</div>
               </div>
             </div>
@@ -217,11 +406,11 @@ export default function QuizResultsPage() {
               fontSize: 15,
             }}
           >
-            Descripción del proyecto
+            Descripción del proyecto (basada en tus respuestas del quiz)
           </label>
           <textarea
             id="project-description"
-            rows={4}
+            rows={8}
             style={{
               width: "100%",
               marginBottom: 16,
@@ -238,7 +427,7 @@ export default function QuizResultsPage() {
             }}
             placeholder="Describe tu proyecto aquí de la forma mas completamente posible..."
             value={projectDescription}
-            onChange={e => setProjectDescription(e.target.value)}
+            onChange={(e) => setProjectDescription(e.target.value)}
           />
           <button
             onClick={handleEvaluate}

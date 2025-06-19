@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -48,11 +48,15 @@ export default function QuizPage() {
     }
   }
 
-  const handleSubmit = () => {
-    // Aquí procesarías las respuestas y calcularías el puntaje
-    // Por ahora redirigimos a los resultados
-    router.push("/quiz-results")
+const handleSubmit = () => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("quizAnswers", JSON.stringify(answers));
   }
+
+  router.push("/quiz-results");
+};
+
+
 
   const isStepComplete = (step: number) => {
     switch (step) {
