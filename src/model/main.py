@@ -156,8 +156,10 @@ async def evaluate(project: Project):
     {project.description}
 
     Evalúa cumplimiento con la ley de protección de datos 21.719 de Chile. Genera en español:
-    1) Una checklist de cumplimiento con base legal
-    2) Recomendaciones por categoría (Consentimiento, Seguridad, ARCO) con ejemplos de buenas prácticas
+    1) Una checklist de cumplimiento con base legal, incluyendo los artículos relevantes de la ley. 
+    Hace que los puntos de la checklist sean claros y concisos. y tengan cumplido ✅ o no cumplido ❌, o falta mas informarcion ❓.
+    hacela en formato de lista.
+    2) Recomendaciones por categoría (Consentimiento, Seguridad, ARCO) con ejemplos de buenas prácticas.
     """
 
     cached_answer = semantic_cache_lookup(prompt)
